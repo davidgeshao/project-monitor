@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive, noimageindex">
+<meta name="googlebot" content="noindex, nofollow">
+<title>Projects — Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f3ef;
+    --surface: #ffffff;
+    --surface2: #f0ede8;
+    --border: rgba(0,0,0,0.08);
+    --border-hover: rgba(0,0,0,0.18);
+    --text: #1a1815;
+    --text-muted: #7a756e;
+    --text-faint: #b0aa9f;
+    --accent: #1d7a5f;
+    --accent-bg: #e8f5f0;
+    --radius: 12px;
+    --radius-sm: 7px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    min-height: 100vh;
+    background: var(--bg);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    color: var(--text);
+    font-size: 15px;
+  }
+
+  /* ---- LAYOUT ---- */
+  .shell {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  /* ---- HEADER ---- */
+  .header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-left .wordmark {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+  }
+  .header-left h1 {
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .header-right { text-align: right; }
+  .date-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.1em;
+  }
+  .stats-row {
+    display: flex;
+    gap: 14px;
+    margin-top: 6px;
+    justify-content: flex-end;
+  }
+  .stat-pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    padding: 3px 9px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .stat-pill.active { border-color: #1d7a5f; color: #1d7a5f; }
+  .stat-pill.pending { border-color: #a07020; color: #a07020; }
+  .stat-pill.blocked { border-color: #a03020; color: #a03020; }
+
+  /* ---- PROJECTS LIST ---- */
+  .projects { display: flex; flex-direction: column; gap: 8px; }
+
+  /* ---- PROJECT CARD ---- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .card:hover { border-color: var(--border-hover); }
+  .card.open { border-color: var(--border-hover); box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+
+  .card-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 18px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .card-rank {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-faint);
+    flex-shrink: 0;
+    width: 20px;
+  }
+  .card-info { flex: 1; min-width: 0; }
+  .card-name {
+    font-size: 15px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-badges { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+
+  /* priority badges */
+  .badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .badge-top    { background: #fde8e4; color: #8c2a18; }
+  .badge-high   { background: #fef0d8; color: #835510; }
+  .badge-mid    { background: #ddeeff; color: #1a4e8c; }
+  .badge-low    { background: #eeece8; color: #6a6560; }
+
+  .status-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
+    border-radius: 20px;
+    cursor: pointer;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    transition: opacity 0.1s;
+  }
+  .status-badge:hover { opacity: 0.75; }
+  .s-active  { background: #e4f5ee; color: #0f5c3a; border-color: #b5dfcc; }
+  .s-pending { background: #fef5e0; color: #7a5010; border-color: #f0d898; }
+  .s-blocked { background: #fde8e4; color: #8c2a18; border-color: #f5bfb5; }
+  .s-planned { background: #eeece8; color: #4a4540; border-color: #d5d0c8; }
+  .s-routine { background: #eeeaff; color: #3a2898; border-color: #c8beff; }
+
+  .chevron {
+    font-size: 14px;
+    color: var(--text-faint);
+    flex-shrink: 0;
+    transition: transform 0.2s;
+    line-height: 1;
+  }
+  .card.open .chevron { transform: rotate(180deg); }
+
+  /* ---- CARD BODY ---- */
+  .card-body {
+    display: none;
+    padding: 0 18px 18px;
+    border-top: 1px solid var(--border);
+  }
+  .card.open .card-body { display: block; }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 14px 0 12px;
+  }
+  .detail-cell {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+  }
+  .detail-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+  .detail-val {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text);
+    line-height: 1.4;
+    cursor: pointer;
+  }
+  .detail-val:hover { color: var(--accent); }
+  .detail-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.4;
+    display: none;
+  }
+
+  .notes-area {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text);
+    resize: none;
+    min-height: 72px;
+    transition: border-color 0.15s;
+  }
+  .notes-area:focus {
+    outline: none;
+    border-color: var(--border-hover);
+    background: var(--surface);
+  }
+  .notes-area::placeholder { color: var(--text-faint); }
+
+  .card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .act-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.1em;
+    margin-right: 2px;
+  }
+  .act-select {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 5px 9px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-hover);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .act-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    padding: 5px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-hover);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.12s;
+  }
+  .act-btn:hover { background: var(--surface2); }
+  .act-btn.chat-btn {
+    background: var(--accent-bg);
+    border-color: #b5dfcc;
+    color: var(--accent);
+  }
+  .act-btn.chat-btn:hover { background: #d4eee5; }
+  .act-btn.new-btn {
+    background: #f5f0ff;
+    border-color: #c8beff;
+    color: #3a2898;
+  }
+  .act-btn.new-btn:hover { background: #ebe4ff; }
+
+  /* ---- FOOTER ---- */
+  .footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-note {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.08em;
+  }
+  .reset-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-faint);
+    cursor: pointer;
+    letter-spacing: 0.08em;
+  }
+  .reset-btn:hover { border-color: #a03020; color: #a03020; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <header class="header">
+    <div class="header-left">
+      <div class="wordmark">Project Monitor</div>
+      <h1>My Projects</h1>
+    </div>
+    <div class="header-right">
+      <div class="date-label" id="today-label"></div>
+      <div class="stats-row">
+        <span class="stat-pill active" id="stat-active"></span>
+        <span class="stat-pill pending" id="stat-pending"></span>
+        <span class="stat-pill blocked" id="stat-blocked"></span>
+      </div>
+    </div>
+  </header>
+
+  <div class="projects" id="projects-list"></div>
+
+  <footer class="footer">
+    <span class="footer-note">saved locally · data persists in this browser</span>
+    <button class="reset-btn" onclick="confirmReset()">reset to defaults</button>
+  </footer>
+</div>
+
+<script>
+const STORE_KEY = 'pm_standalone_v1';
+
+const DEFAULT_PROJECTS = [
+  {
+    id: 1,
+    name: "CAMO Social Media",
+    subtitle: "Plans, execution & content creation",
+    priority: "top",
+    status: "active",
+    nextAction: "Define content calendar & posting schedule",
+    lastUpdated: today(),
+    notes: "Top priority right now. Social media plans, content creation, Rednote content from survey reports, and more.",
+    chatUrl: "https://claude.ai/chat/63ab4146-ce55-402f-a3ad-61c98d011311",
+    chatLabel: "Converting survey reports to Rednote content",
+    chatMode: "existing"
+  },
+  {
+    id: 2,
+    name: "CAMO Research with SZW",
+    subtitle: "Research project collaboration",
+    priority: "high",
+    status: "active",
+    nextAction: "Sync with SZW on current progress",
+    lastUpdated: today(),
+    notes: "Working in Claude Code — no chat link needed.",
+    chatUrl: null,
+    chatLabel: null,
+    chatMode: "code"
+  },
+  {
+    id: 3,
+    name: "CAMO Research Proposals",
+    subtitle: "Propose projects, brief the profs",
+    priority: "high",
+    status: "planned",
+    nextAction: "Draft project proposals for profs",
+    lastUpdated: today(),
+    notes: "Should propose more projects. Let profs know how they can actually help.",
+    chatUrl: "https://claude.ai/chat/new",
+    chatLabel: "Start new chat",
+    chatMode: "new"
+  },
+  {
+    id: 4,
+    name: "CAMO Logo & Website",
+    subtitle: "Brand identity and online presence",
+    priority: "mid",
+    status: "pending",
+    nextAction: "Finalize logo direction",
+    lastUpdated: today(),
+    notes: "",
+    chatUrl: "https://claude.ai/chat/de108597-e429-423b-9ecc-3148d539b644",
+    chatLabel: "Fractal design for CAMO animated logo",
+    chatMode: "existing"
+  },
+  {
+    id: 5,
+    name: "燕园叶话 Weekly Routine",
+    subtitle: "Automation & workflow optimization",
+    priority: "mid",
+    status: "routine",
+    nextAction: "Work on automation pipeline",
+    lastUpdated: today(),
+    notes: "Weekly routine. Focus: automating the process.",
+    chatUrl: "https://claude.ai/chat/83dd8b52-1e39-4520-8fde-2a85c94a09d4",
+    chatLabel: "YYYH Canva & Design",
+    chatMode: "existing"
+  },
+  {
+    id: 6,
+    name: "Personal Project",
+    subtitle: "Photo & video",
+    priority: "low",
+    status: "planned",
+    nextAction: "Review and organize recent shoots",
+    lastUpdated: today(),
+    notes: "",
+    chatUrl: "https://claude.ai/chat/new",
+    chatLabel: "Start new chat",
+    chatMode: "new"
+  },
+  {
+    id: 7,
+    name: "Training",
+    subtitle: "HK Race Plan 2026–27 · Log chat",
+    priority: "low",
+    status: "routine",
+    nextAction: "Follow HK Race Training Plan 2026-27",
+    lastUpdated: today(),
+    notes: "Detailed tracking in the Log chat (DS project). Training plan runs to Jan 2027.",
+    chatUrl: "https://claude.ai/chat/c1e26cdc-d144-4f63-8dbb-6c015f16692a",
+    chatLabel: "Log (DS project)",
+    chatMode: "existing"
+  }
+];
+
+const PRIORITY_MAP = {
+  top:  { cls: 'badge-top',  label: '● TOP' },
+  high: { cls: 'badge-high', label: '● HIGH' },
+  mid:  { cls: 'badge-mid',  label: '● MID' },
+  low:  { cls: 'badge-low',  label: '● LOW' }
+};
+
+const STATUS_MAP = {
+  active:  { cls: 's-active',  label: 'Active' },
+  pending: { cls: 's-pending', label: 'Pending' },
+  blocked: { cls: 's-blocked', label: 'Blocked' },
+  planned: { cls: 's-planned', label: 'Planned' },
+  routine: { cls: 's-routine', label: 'Routine' }
+};
+
+const STATUS_CYCLE = ['active','pending','blocked','planned','routine'];
+
+function today() {
+  return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return null;
+}
+
+function save(projects) {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(projects)); } catch(e) {}
+}
+
+let projects = load() || JSON.parse(JSON.stringify(DEFAULT_PROJECTS));
+let openId = null;
+
+function render() {
+  const list = document.getElementById('projects-list');
+  list.innerHTML = '';
+
+  projects.forEach((proj, idx) => {
+    const p = PRIORITY_MAP[proj.priority];
+    const s = STATUS_MAP[proj.status];
+
+    const card = document.createElement('div');
+    card.className = 'card' + (openId === proj.id ? ' open' : '');
+    card.id = 'card-' + proj.id;
+
+    // Build chat button HTML
+    let chatBtnHtml = '';
+    if (proj.chatMode === 'code') {
+      chatBtnHtml = `<span class="act-btn" style="cursor:default;opacity:0.6">⌨ Claude Code</span>`;
+    } else if (proj.chatMode === 'new') {
+      chatBtnHtml = `<a class="act-btn new-btn" href="${proj.chatUrl}" target="_blank">✦ New chat ↗</a>`;
+    } else if (proj.chatUrl) {
+      chatBtnHtml = `<a class="act-btn chat-btn" href="${proj.chatUrl}" target="_blank">↗ ${proj.chatLabel || 'Open chat'}</a>`;
+    }
+
+    card.innerHTML = `
+      <div class="card-top" onclick="toggleCard(${proj.id})">
+        <span class="card-rank">${String(idx + 1).padStart(2,'0')}</span>
+        <div class="card-info">
+          <div class="card-name">${proj.name}</div>
+          <div class="card-sub">${proj.subtitle}</div>
+        </div>
+        <div class="card-badges">
+          <span class="badge ${p.cls}">${p.label}</span>
+          <span class="status-badge ${s.cls}" onclick="cycleStatus(event, ${proj.id})">${s.label}</span>
+        </div>
+        <span class="chevron">▾</span>
+      </div>
+      <div class="card-body">
+        <div class="detail-grid">
+          <div class="detail-cell">
+            <div class="detail-label">Next action</div>
+            <div class="detail-val" id="na-val-${proj.id}" onclick="editNA(${proj.id})">${proj.nextAction || '— tap to add'}</div>
+            <input class="detail-input" id="na-inp-${proj.id}" value="${(proj.nextAction||'').replace(/"/g,'&quot;')}"
+              onblur="saveNA(${proj.id})"
+              onkeydown="if(event.key==='Enter')this.blur()" />
+          </div>
+          <div class="detail-cell">
+            <div class="detail-label">Last updated</div>
+            <div class="detail-val" style="cursor:default">${proj.lastUpdated}</div>
+          </div>
+        </div>
+        <textarea class="notes-area" placeholder="Notes… (auto-saved as you type)"
+          oninput="saveNotes(${proj.id}, this.value)">${proj.notes || ''}</textarea>
+        <div class="card-actions">
+          <span class="act-label">STATUS</span>
+          <select class="act-select" onchange="setStatus(${proj.id}, this.value)">
+            ${Object.entries(STATUS_MAP).map(([k,v]) => `<option value="${k}" ${k===proj.status?'selected':''}>${v.label}</option>`).join('')}
+          </select>
+          <span style="flex:1"></span>
+          ${chatBtnHtml}
+        </div>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+
+  updateStats();
+}
+
+function toggleCard(id) {
+  openId = (openId === id) ? null : id;
+  render();
+}
+
+function cycleStatus(e, id) {
+  e.stopPropagation();
+  const proj = projects.find(p => p.id === id);
+  const idx = STATUS_CYCLE.indexOf(proj.status);
+  proj.status = STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
+  proj.lastUpdated = today();
+  save(projects);
+  openId = id;
+  render();
+}
+
+function setStatus(id, val) {
+  const proj = projects.find(p => p.id === id);
+  proj.status = val;
+  proj.lastUpdated = today();
+  save(projects);
+  openId = id;
+  render();
+}
+
+function saveNotes(id, val) {
+  const proj = projects.find(p => p.id === id);
+  proj.notes = val;
+  proj.lastUpdated = today();
+  save(projects);
+}
+
+function editNA(id) {
+  document.getElementById('na-val-' + id).style.display = 'none';
+  const inp = document.getElementById('na-inp-' + id);
+  inp.style.display = 'block';
+  inp.focus();
+  inp.select();
+}
+
+function saveNA(id) {
+  const inp = document.getElementById('na-inp-' + id);
+  const proj = projects.find(p => p.id === id);
+  proj.nextAction = inp.value;
+  proj.lastUpdated = today();
+  save(projects);
+  openId = id;
+  render();
+}
+
+function updateStats() {
+  const active  = projects.filter(p => p.status === 'active').length;
+  const pending = projects.filter(p => p.status === 'pending').length;
+  const blocked = projects.filter(p => p.status === 'blocked').length;
+  document.getElementById('stat-active').textContent  = active  + ' active';
+  document.getElementById('stat-pending').textContent = pending + ' pending';
+  document.getElementById('stat-blocked').textContent = blocked + ' blocked';
+}
+
+function confirmReset() {
+  if (confirm('Reset all projects to defaults? This cannot be undone.')) {
+    localStorage.removeItem(STORE_KEY);
+    projects = JSON.parse(JSON.stringify(DEFAULT_PROJECTS));
+    openId = null;
+    render();
+  }
+}
+
+// Set date
+document.getElementById('today-label').textContent =
+  new Date().toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+
+render();
+</script>
+</body>
+</html>
