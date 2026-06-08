@@ -20,7 +20,7 @@
     --text-faint: #b0aa9f;
     --accent: #1d7a5f;
     --accent-bg: #e8f5f0;
-    --radius: 12px;
+    --radius: 14px;
     --radius-sm: 7px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -34,9 +34,9 @@
 
   /* ---- LAYOUT ---- */
   .shell {
-    max-width: 760px;
+    max-width: 1280px;
     margin: 0 auto;
-    padding: 48px 24px 80px;
+    padding: 44px 32px 80px;
   }
 
   /* ---- HEADER ---- */
@@ -44,9 +44,11 @@
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    margin-bottom: 36px;
-    padding-bottom: 24px;
+    margin-bottom: 30px;
+    padding-bottom: 22px;
     border-bottom: 1px solid var(--border);
+    gap: 16px;
+    flex-wrap: wrap;
   }
   .header-left .wordmark {
     font-family: 'DM Mono', monospace;
@@ -57,7 +59,7 @@
     margin-bottom: 10px;
   }
   .header-left h1 {
-    font-size: 28px;
+    font-size: 30px;
     font-weight: 500;
     letter-spacing: -0.02em;
     line-height: 1.1;
@@ -72,8 +74,9 @@
   .stats-row {
     display: flex;
     gap: 14px;
-    margin-top: 6px;
+    margin-top: 8px;
     justify-content: flex-end;
+    flex-wrap: wrap;
   }
   .stat-pill {
     font-family: 'DM Mono', monospace;
@@ -88,52 +91,115 @@
   .stat-pill.pending { border-color: #a07020; color: #a07020; }
   .stat-pill.blocked { border-color: #a03020; color: #a03020; }
 
-  /* ---- PROJECTS LIST ---- */
-  .projects { display: flex; flex-direction: column; gap: 8px; }
+  /* ---- GRID ---- */
+  .projects {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(216px, 1fr));
+    gap: 16px;
+  }
 
-  /* ---- PROJECT CARD ---- */
+  /* ---- PROJECT TILE (2:3) ---- */
   .card {
+    position: relative;
+    aspect-ratio: 2 / 3;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
+    padding: 18px 17px 16px;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
     overflow: hidden;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color 0.15s, box-shadow 0.18s, transform 0.18s;
   }
-  .card:hover { border-color: var(--border-hover); }
-  .card.open { border-color: var(--border-hover); box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--pr, #ccc);
+    opacity: 0.85;
+  }
+  .card:hover {
+    border-color: var(--border-hover);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.09);
+    transform: translateY(-3px);
+  }
+  .card.pr-top  { --pr: #c2402b; }
+  .card.pr-high { --pr: #b8801f; }
+  .card.pr-mid  { --pr: #2e6fbf; }
+  .card.pr-low  { --pr: #b0aa9f; }
 
-  .card-top {
+  .card-head {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 15px 18px;
-    cursor: pointer;
-    user-select: none;
+    justify-content: space-between;
+    margin-bottom: 12px;
   }
   .card-rank {
     font-family: 'DM Mono', monospace;
     font-size: 11px;
     color: var(--text-faint);
-    flex-shrink: 0;
-    width: 20px;
+    letter-spacing: 0.05em;
   }
-  .card-info { flex: 1; min-width: 0; }
   .card-name {
-    font-size: 15px;
-    font-weight: 500;
-    white-space: nowrap;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.22;
+    letter-spacing: -0.01em;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
   }
   .card-sub {
-    font-size: 12px;
+    font-size: 12.5px;
     color: var(--text-muted);
-    margin-top: 2px;
-    white-space: nowrap;
+    margin-top: 6px;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
   }
-  .card-badges { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+  .card-spacer { flex: 1; min-height: 8px; }
+
+  .card-next { margin-bottom: 12px; }
+  .card-next-text {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.4;
+    margin-top: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card-next-text.empty { color: var(--text-faint); }
+
+  .mini-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.13em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+
+  .card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: auto;
+  }
+  .chat-icon {
+    font-size: 13px;
+    color: var(--text-faint);
+    flex-shrink: 0;
+  }
 
   /* priority badges */
   .badge {
@@ -153,126 +219,142 @@
     font-family: 'DM Mono', monospace;
     font-size: 10px;
     letter-spacing: 0.08em;
-    padding: 3px 8px;
+    padding: 3px 9px;
     border-radius: 20px;
     cursor: pointer;
     white-space: nowrap;
     border: 1px solid transparent;
     transition: opacity 0.1s;
   }
-  .status-badge:hover { opacity: 0.75; }
+  .status-badge:hover { opacity: 0.72; }
   .s-active  { background: #e4f5ee; color: #0f5c3a; border-color: #b5dfcc; }
   .s-pending { background: #fef5e0; color: #7a5010; border-color: #f0d898; }
   .s-blocked { background: #fde8e4; color: #8c2a18; border-color: #f5bfb5; }
   .s-planned { background: #eeece8; color: #4a4540; border-color: #d5d0c8; }
   .s-routine { background: #eeeaff; color: #3a2898; border-color: #c8beff; }
 
-  .chevron {
-    font-size: 14px;
-    color: var(--text-faint);
-    flex-shrink: 0;
-    transition: transform 0.2s;
-    line-height: 1;
-  }
-  .card.open .chevron { transform: rotate(180deg); }
-
-  /* ---- CARD BODY ---- */
-  .card-body {
+  /* ---- MODAL ---- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26,24,21,0.42);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
     display: none;
-    padding: 0 18px 18px;
-    border-top: 1px solid var(--border);
-  }
-  .card.open .card-body { display: block; }
-
-  .detail-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin: 14px 0 12px;
-  }
-  .detail-cell {
-    background: var(--surface2);
-    border-radius: var(--radius-sm);
-    padding: 10px 12px;
-  }
-  .detail-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    color: var(--text-faint);
-    text-transform: uppercase;
-    margin-bottom: 5px;
-  }
-  .detail-val {
-    font-size: 13px;
-    font-weight: 400;
-    color: var(--text);
-    line-height: 1.4;
-    cursor: pointer;
-  }
-  .detail-val:hover { color: var(--accent); }
-  .detail-input {
-    width: 100%;
-    background: transparent;
-    border: none;
-    outline: none;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    color: var(--text);
-    line-height: 1.4;
-    display: none;
-  }
-
-  .notes-area {
-    width: 100%;
-    background: var(--surface2);
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
-    padding: 10px 12px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    line-height: 1.6;
-    color: var(--text);
-    resize: none;
-    min-height: 72px;
-    transition: border-color 0.15s;
-  }
-  .notes-area:focus {
-    outline: none;
-    border-color: var(--border-hover);
-    background: var(--surface);
-  }
-  .notes-area::placeholder { color: var(--text-faint); }
-
-  .card-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 10px;
-    flex-wrap: wrap;
     align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 100;
   }
-  .act-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: var(--text-faint);
-    letter-spacing: 0.1em;
-    margin-right: 2px;
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: 18px;
+    width: min(540px, 100%);
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 26px 28px 24px;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.28);
+    animation: pop 0.16s ease-out;
   }
+  @keyframes pop { from { transform: scale(0.97); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  .modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .modal-close {
+    border: none;
+    background: var(--surface2);
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1;
+    transition: background 0.12s;
+  }
+  .modal-close:hover { background: #e6e1da; }
+
+  .modal-name {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+  }
+  .modal-sub {
+    font-size: 13.5px;
+    color: var(--text-muted);
+    margin-top: 5px;
+    margin-bottom: 18px;
+  }
+
+  .field { margin-bottom: 16px; }
+  .field .mini-label { display: block; margin-bottom: 7px; }
+
   .act-select {
     font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    padding: 5px 9px;
+    font-size: 12px;
+    padding: 8px 11px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-hover);
     background: var(--surface);
     color: var(--text);
     cursor: pointer;
   }
+  .text-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    color: var(--text);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .text-input:focus { outline: none; border-color: var(--border-hover); background: var(--surface); }
+
+  .notes-area {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 11px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--text);
+    resize: vertical;
+    min-height: 96px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .notes-area:focus { outline: none; border-color: var(--border-hover); background: var(--surface); }
+  .notes-area::placeholder, .text-input::placeholder { color: var(--text-faint); }
+
+  .modal-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .updated-note {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.06em;
+  }
   .act-btn {
     font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.05em;
-    padding: 5px 12px;
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    padding: 8px 14px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-hover);
     background: var(--surface);
@@ -281,31 +363,26 @@
     text-decoration: none;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     transition: background 0.12s;
   }
   .act-btn:hover { background: var(--surface2); }
-  .act-btn.chat-btn {
-    background: var(--accent-bg);
-    border-color: #b5dfcc;
-    color: var(--accent);
-  }
+  .act-btn.chat-btn { background: var(--accent-bg); border-color: #b5dfcc; color: var(--accent); }
   .act-btn.chat-btn:hover { background: #d4eee5; }
-  .act-btn.new-btn {
-    background: #f5f0ff;
-    border-color: #c8beff;
-    color: #3a2898;
-  }
+  .act-btn.new-btn { background: #f5f0ff; border-color: #c8beff; color: #3a2898; }
   .act-btn.new-btn:hover { background: #ebe4ff; }
+  .act-btn.code-btn { cursor: default; opacity: 0.7; }
 
   /* ---- FOOTER ---- */
   .footer {
-    margin-top: 40px;
+    margin-top: 36px;
     padding-top: 20px;
     border-top: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
   }
   .footer-note {
     font-family: 'DM Mono', monospace;
@@ -316,7 +393,7 @@
   .reset-btn {
     font-family: 'DM Mono', monospace;
     font-size: 10px;
-    padding: 4px 10px;
+    padding: 5px 11px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border);
     background: transparent;
@@ -325,6 +402,13 @@
     letter-spacing: 0.08em;
   }
   .reset-btn:hover { border-color: #a03020; color: #a03020; }
+
+  @media (max-width: 560px) {
+    .shell { padding: 32px 18px 60px; }
+    .header { align-items: flex-start; }
+    .header-right, .stats-row { text-align: left; justify-content: flex-start; }
+    .projects { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  }
 </style>
 </head>
 <body>
@@ -351,6 +435,10 @@
     <span class="footer-note">saved locally · data persists in this browser</span>
     <button class="reset-btn" onclick="confirmReset()">reset to defaults</button>
   </footer>
+</div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal" role="dialog" aria-modal="true"></div>
 </div>
 
 <script>
@@ -471,6 +559,11 @@ function today() {
   return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function esc(str) {
+  return (str == null ? '' : String(str))
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 function load() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
@@ -484,7 +577,7 @@ function save(projects) {
 }
 
 let projects = load() || JSON.parse(JSON.stringify(DEFAULT_PROJECTS));
-let openId = null;
+let currentModalId = null;
 
 function render() {
   const list = document.getElementById('projects-list');
@@ -495,56 +588,33 @@ function render() {
     const s = STATUS_MAP[proj.status];
 
     const card = document.createElement('div');
-    card.className = 'card' + (openId === proj.id ? ' open' : '');
-    card.id = 'card-' + proj.id;
+    card.className = 'card pr-' + proj.priority;
+    card.onclick = () => openModal(proj.id);
 
-    // Build chat button HTML
-    let chatBtnHtml = '';
-    if (proj.chatMode === 'code') {
-      chatBtnHtml = `<span class="act-btn" style="cursor:default;opacity:0.6">⌨ Claude Code</span>`;
-    } else if (proj.chatMode === 'new') {
-      chatBtnHtml = `<a class="act-btn new-btn" href="${proj.chatUrl}" target="_blank">✦ New chat ↗</a>`;
-    } else if (proj.chatUrl) {
-      chatBtnHtml = `<a class="act-btn chat-btn" href="${proj.chatUrl}" target="_blank">↗ ${proj.chatLabel || 'Open chat'}</a>`;
-    }
+    let chatIcon = '';
+    if (proj.chatMode === 'code') chatIcon = '⌨';
+    else if (proj.chatMode === 'new') chatIcon = '✦';
+    else if (proj.chatUrl) chatIcon = '↗';
+
+    const naText = proj.nextAction
+      ? `<div class="card-next-text">${esc(proj.nextAction)}</div>`
+      : `<div class="card-next-text empty">— tap to add</div>`;
 
     card.innerHTML = `
-      <div class="card-top" onclick="toggleCard(${proj.id})">
+      <div class="card-head">
         <span class="card-rank">${String(idx + 1).padStart(2,'0')}</span>
-        <div class="card-info">
-          <div class="card-name">${proj.name}</div>
-          <div class="card-sub">${proj.subtitle}</div>
-        </div>
-        <div class="card-badges">
-          <span class="badge ${p.cls}">${p.label}</span>
-          <span class="status-badge ${s.cls}" onclick="cycleStatus(event, ${proj.id})">${s.label}</span>
-        </div>
-        <span class="chevron">▾</span>
+        <span class="badge ${p.cls}">${p.label}</span>
       </div>
-      <div class="card-body">
-        <div class="detail-grid">
-          <div class="detail-cell">
-            <div class="detail-label">Next action</div>
-            <div class="detail-val" id="na-val-${proj.id}" onclick="editNA(${proj.id})">${proj.nextAction || '— tap to add'}</div>
-            <input class="detail-input" id="na-inp-${proj.id}" value="${(proj.nextAction||'').replace(/"/g,'&quot;')}"
-              onblur="saveNA(${proj.id})"
-              onkeydown="if(event.key==='Enter')this.blur()" />
-          </div>
-          <div class="detail-cell">
-            <div class="detail-label">Last updated</div>
-            <div class="detail-val" style="cursor:default">${proj.lastUpdated}</div>
-          </div>
-        </div>
-        <textarea class="notes-area" placeholder="Notes… (auto-saved as you type)"
-          oninput="saveNotes(${proj.id}, this.value)">${proj.notes || ''}</textarea>
-        <div class="card-actions">
-          <span class="act-label">STATUS</span>
-          <select class="act-select" onchange="setStatus(${proj.id}, this.value)">
-            ${Object.entries(STATUS_MAP).map(([k,v]) => `<option value="${k}" ${k===proj.status?'selected':''}>${v.label}</option>`).join('')}
-          </select>
-          <span style="flex:1"></span>
-          ${chatBtnHtml}
-        </div>
+      <div class="card-name">${esc(proj.name)}</div>
+      <div class="card-sub">${esc(proj.subtitle)}</div>
+      <div class="card-spacer"></div>
+      <div class="card-next">
+        <div class="mini-label">Next action</div>
+        ${naText}
+      </div>
+      <div class="card-foot">
+        <span class="status-badge ${s.cls}" onclick="cycleStatus(event, ${proj.id})">${s.label}</span>
+        <span class="chat-icon">${chatIcon}</span>
       </div>
     `;
     list.appendChild(card);
@@ -553,8 +623,61 @@ function render() {
   updateStats();
 }
 
-function toggleCard(id) {
-  openId = (openId === id) ? null : id;
+function openModal(id) {
+  const proj = projects.find(p => p.id === id);
+  if (!proj) return;
+  const p = PRIORITY_MAP[proj.priority];
+
+  let chatBtn = '';
+  if (proj.chatMode === 'code') {
+    chatBtn = `<span class="act-btn code-btn">⌨ Working in Claude Code</span>`;
+  } else if (proj.chatMode === 'new') {
+    chatBtn = `<a class="act-btn new-btn" href="${esc(proj.chatUrl)}" target="_blank" rel="noopener">✦ Start new chat ↗</a>`;
+  } else if (proj.chatUrl) {
+    chatBtn = `<a class="act-btn chat-btn" href="${esc(proj.chatUrl)}" target="_blank" rel="noopener">↗ ${esc(proj.chatLabel) || 'Open chat'}</a>`;
+  }
+
+  const statusOpts = Object.entries(STATUS_MAP)
+    .map(([k,v]) => `<option value="${k}" ${k===proj.status?'selected':''}>${v.label}</option>`).join('');
+
+  document.getElementById('modal').innerHTML = `
+    <div class="modal-head">
+      <span class="badge ${p.cls}">${p.label}</span>
+      <button class="modal-close" onclick="closeModal()" aria-label="Close">✕</button>
+    </div>
+    <h2 class="modal-name">${esc(proj.name)}</h2>
+    <div class="modal-sub">${esc(proj.subtitle)}</div>
+
+    <div class="field">
+      <label class="mini-label">Status</label>
+      <select class="act-select" onchange="setStatus(${proj.id}, this.value)">${statusOpts}</select>
+    </div>
+
+    <div class="field">
+      <label class="mini-label">Next action</label>
+      <input class="text-input" id="m-na" value="${esc(proj.nextAction)}"
+             placeholder="What's the next step?" oninput="saveNA(${proj.id}, this.value)">
+    </div>
+
+    <div class="field">
+      <label class="mini-label">Notes</label>
+      <textarea class="notes-area" placeholder="Notes… (auto-saved as you type)"
+                oninput="saveNotes(${proj.id}, this.value)">${esc(proj.notes)}</textarea>
+    </div>
+
+    <div class="modal-foot">
+      <span class="updated-note">Updated ${esc(proj.lastUpdated)}</span>
+      ${chatBtn}
+    </div>
+  `;
+
+  currentModalId = id;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  currentModalId = null;
   render();
 }
 
@@ -565,7 +688,6 @@ function cycleStatus(e, id) {
   proj.status = STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
   proj.lastUpdated = today();
   save(projects);
-  openId = id;
   render();
 }
 
@@ -574,8 +696,8 @@ function setStatus(id, val) {
   proj.status = val;
   proj.lastUpdated = today();
   save(projects);
-  openId = id;
-  render();
+  const note = document.querySelector('#modal .updated-note');
+  if (note) note.textContent = 'Updated ' + proj.lastUpdated;
 }
 
 function saveNotes(id, val) {
@@ -585,22 +707,11 @@ function saveNotes(id, val) {
   save(projects);
 }
 
-function editNA(id) {
-  document.getElementById('na-val-' + id).style.display = 'none';
-  const inp = document.getElementById('na-inp-' + id);
-  inp.style.display = 'block';
-  inp.focus();
-  inp.select();
-}
-
-function saveNA(id) {
-  const inp = document.getElementById('na-inp-' + id);
+function saveNA(id, val) {
   const proj = projects.find(p => p.id === id);
-  proj.nextAction = inp.value;
+  proj.nextAction = val;
   proj.lastUpdated = today();
   save(projects);
-  openId = id;
-  render();
 }
 
 function updateStats() {
@@ -616,12 +727,12 @@ function confirmReset() {
   if (confirm('Reset all projects to defaults? This cannot be undone.')) {
     localStorage.removeItem(STORE_KEY);
     projects = JSON.parse(JSON.stringify(DEFAULT_PROJECTS));
-    openId = null;
-    render();
+    closeModal();
   }
 }
 
-// Set date
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
 document.getElementById('today-label').textContent =
   new Date().toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
 
