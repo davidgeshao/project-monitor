@@ -373,6 +373,33 @@
   .act-btn.new-btn:hover { background: #ebe4ff; }
   .act-btn.code-btn { cursor: default; opacity: 0.7; }
 
+  /* ---- SYNC ---- */
+  .sync-chip {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: border-color 0.12s, color 0.12s, background 0.12s;
+  }
+  .sync-chip:hover { border-color: var(--border-hover); }
+  .sync-chip.s-on   { border-color: #b5dfcc; color: #0f5c3a; background: #e4f5ee; }
+  .sync-chip.s-busy { border-color: #f0d898; color: #7a5010; background: #fef5e0; }
+  .sync-chip.s-err  { border-color: #f5bfb5; color: #8c2a18; background: #fde8e4; }
+
+  .sync-help { font-size: 12.5px; color: var(--text-muted); line-height: 1.65; margin-bottom: 10px; }
+  .sync-help b { color: var(--text); font-weight: 500; }
+  .sync-link { display: inline-block; font-family: 'DM Mono', monospace; font-size: 11.5px; color: var(--accent); text-decoration: none; }
+  .sync-link:hover { text-decoration: underline; }
+  .sync-status { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-faint); margin-top: 12px; min-height: 16px; line-height: 1.5; }
+  .sync-status.ok   { color: #0f5c3a; }
+  .sync-status.busy { color: #7a5010; }
+  .sync-status.err  { color: #8c2a18; }
+
   /* ---- FOOTER ---- */
   .footer {
     margin-top: 36px;
@@ -432,7 +459,7 @@
   <div class="projects" id="projects-list"></div>
 
   <footer class="footer">
-    <span class="footer-note">saved locally · data persists in this browser</span>
+    <button class="sync-chip" id="sync-chip" onclick="openSync()">⊘ 本地模式 · 开启同步</button>
     <button class="reset-btn" onclick="confirmReset()">reset to defaults</button>
   </footer>
 </div>
@@ -441,8 +468,17 @@
   <div class="modal" id="modal" role="dialog" aria-modal="true"></div>
 </div>
 
+<div class="modal-overlay" id="sync-overlay" onclick="if(event.target===this)closeSync()">
+  <div class="modal" id="sync-modal" role="dialog" aria-modal="true"></div>
+</div>
+
 <script>
 const STORE_KEY = 'pm_standalone_v1';
+const UPDATED_KEY = 'pm_updated_at';
+const TOKEN_KEY = 'pm_gist_token';
+const GIST_ID_KEY = 'pm_gist_id';
+const GIST_DESC = 'project-monitor-sync';
+const GIST_FILE = 'project-monitor.json';
 
 const DEFAULT_PROJECTS = [
   {
@@ -572,11 +608,22 @@ function load() {
   return null;
 }
 
-function save(projects) {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(projects)); } catch(e) {}
+function persist() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(projects));
+    localStorage.setItem(UPDATED_KEY, String(localUpdatedAt));
+  } catch(e) {}
+}
+
+// Called after any user edit: bump timestamp, save locally, push to gist (if connected).
+function commit() {
+  localUpdatedAt = Date.now();
+  persist();
+  schedulePush();
 }
 
 let projects = load() || JSON.parse(JSON.stringify(DEFAULT_PROJECTS));
+let localUpdatedAt = Number(localStorage.getItem(UPDATED_KEY)) || 0;
 let currentModalId = null;
 
 function render() {
@@ -687,7 +734,7 @@ function cycleStatus(e, id) {
   const idx = STATUS_CYCLE.indexOf(proj.status);
   proj.status = STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
   proj.lastUpdated = today();
-  save(projects);
+  commit();
   render();
 }
 
@@ -695,7 +742,7 @@ function setStatus(id, val) {
   const proj = projects.find(p => p.id === id);
   proj.status = val;
   proj.lastUpdated = today();
-  save(projects);
+  commit();
   const note = document.querySelector('#modal .updated-note');
   if (note) note.textContent = 'Updated ' + proj.lastUpdated;
 }
@@ -704,14 +751,14 @@ function saveNotes(id, val) {
   const proj = projects.find(p => p.id === id);
   proj.notes = val;
   proj.lastUpdated = today();
-  save(projects);
+  commit();
 }
 
 function saveNA(id, val) {
   const proj = projects.find(p => p.id === id);
   proj.nextAction = val;
   proj.lastUpdated = today();
-  save(projects);
+  commit();
 }
 
 function updateStats() {
@@ -725,18 +772,231 @@ function updateStats() {
 
 function confirmReset() {
   if (confirm('Reset all projects to defaults? This cannot be undone.')) {
-    localStorage.removeItem(STORE_KEY);
     projects = JSON.parse(JSON.stringify(DEFAULT_PROJECTS));
+    commit();
     closeModal();
   }
 }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+/* ---------- Cross-device sync via a private GitHub Gist ---------- */
+let gistToken = localStorage.getItem(TOKEN_KEY) || '';
+let gistId = localStorage.getItem(GIST_ID_KEY) || '';
+let syncState = 'off';      // off | connecting | synced | syncing | error
+let syncStateMsg = '';
+let pushTimer = null;
+
+function ghHeaders() {
+  return {
+    'Authorization': 'Bearer ' + gistToken,
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
+}
+
+async function findGist() {
+  const res = await fetch('https://api.github.com/gists?per_page=100', { headers: ghHeaders() });
+  if (!res.ok) throw new Error('list ' + res.status);
+  const list = await res.json();
+  const hit = list.find(g => g.description === GIST_DESC);
+  return hit ? hit.id : '';
+}
+
+async function fetchGist(id) {
+  const res = await fetch('https://api.github.com/gists/' + id, { headers: ghHeaders() });
+  if (!res.ok) throw new Error('get ' + res.status);
+  const g = await res.json();
+  const file = g.files && g.files[GIST_FILE];
+  if (!file) return null;
+  let content = file.content;
+  if (file.truncated && file.raw_url) content = await (await fetch(file.raw_url)).text();
+  try { return JSON.parse(content); } catch(e) { return null; }
+}
+
+async function createGist(blob) {
+  const res = await fetch('https://api.github.com/gists', {
+    method: 'POST', headers: ghHeaders(),
+    body: JSON.stringify({ description: GIST_DESC, public: false,
+      files: { [GIST_FILE]: { content: JSON.stringify(blob, null, 2) } } })
+  });
+  if (!res.ok) throw new Error('create ' + res.status);
+  return (await res.json()).id;
+}
+
+async function updateGist(id, blob) {
+  const res = await fetch('https://api.github.com/gists/' + id, {
+    method: 'PATCH', headers: ghHeaders(),
+    body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(blob, null, 2) } } })
+  });
+  if (!res.ok) throw new Error('update ' + res.status);
+}
+
+function schedulePush() {
+  if (!gistToken) return;            // not connected → local only
+  setSyncState('syncing');
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(pushNow, 1200);
+}
+
+async function pushNow() {
+  if (!gistToken) return;
+  try {
+    setSyncState('syncing');
+    if (!localUpdatedAt) { localUpdatedAt = Date.now(); persist(); }
+    const blob = { projects, updatedAt: localUpdatedAt };
+    if (!gistId) {
+      gistId = await createGist(blob);
+      localStorage.setItem(GIST_ID_KEY, gistId);
+    } else {
+      await updateGist(gistId, blob);
+    }
+    setSyncState('synced');
+  } catch(e) { setSyncState('error', e.message); }
+}
+
+async function pullLatest() {
+  if (!gistToken || !gistId) return;
+  try {
+    const blob = await fetchGist(gistId);
+    if (blob && Array.isArray(blob.projects) && (blob.updatedAt || 0) > localUpdatedAt) {
+      projects = blob.projects;
+      localUpdatedAt = blob.updatedAt;
+      persist();
+      if (currentModalId == null) render();
+      setSyncState('synced');
+    }
+  } catch(e) { /* transient; ignore */ }
+}
+
+async function connectSync(token) {
+  token = (token || '').trim();
+  if (!token) return;
+  gistToken = token;
+  localStorage.setItem(TOKEN_KEY, gistToken);
+  setSyncState('connecting');
+  try {
+    let id = gistId || await findGist();
+    if (id) {
+      gistId = id;
+      localStorage.setItem(GIST_ID_KEY, id);
+      const blob = await fetchGist(id);
+      if (blob && Array.isArray(blob.projects)) {
+        if ((blob.updatedAt || 0) >= localUpdatedAt) {
+          projects = blob.projects;
+          localUpdatedAt = blob.updatedAt || Date.now();
+          persist();
+          if (currentModalId == null) render();
+          setSyncState('synced');
+        } else {
+          await pushNow();           // local is newer → upload
+        }
+      } else {
+        await pushNow();             // gist empty → seed it
+      }
+    } else {
+      if (!localUpdatedAt) localUpdatedAt = Date.now();
+      gistId = await createGist({ projects, updatedAt: localUpdatedAt });
+      localStorage.setItem(GIST_ID_KEY, gistId);
+      persist();
+      setSyncState('synced');
+    }
+  } catch(e) { setSyncState('error', e.message); }
+}
+
+function disconnectSync() {
+  gistToken = ''; gistId = '';
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(GIST_ID_KEY);
+  setSyncState('off');
+  closeSync();
+}
+
+function setSyncState(state, msg) {
+  syncState = state;
+  syncStateMsg = msg || '';
+  updateSyncChip();
+  updateSyncStatusLine();
+}
+
+function statusClass() {
+  if (syncState === 'synced') return 'ok';
+  if (syncState === 'syncing' || syncState === 'connecting') return 'busy';
+  if (syncState === 'error') return 'err';
+  return '';
+}
+
+function syncStatusText() {
+  switch (syncState) {
+    case 'connecting': return '连接中…';
+    case 'synced':     return '✓ 已连接，数据已同步' + (gistId ? ' · gist ' + gistId.slice(0,8) : '');
+    case 'syncing':    return '↻ 正在保存到 Gist…';
+    case 'error':      return '⚠ 出错：' + (syncStateMsg || '请检查 token 是否含 gist 权限');
+    default:           return gistToken ? '' : '尚未连接（数据仅存本机）';
+  }
+}
+
+function updateSyncStatusLine() {
+  const el = document.getElementById('sync-status-line');
+  if (el) { el.textContent = syncStatusText(); el.className = 'sync-status ' + statusClass(); }
+}
+
+function updateSyncChip() {
+  const el = document.getElementById('sync-chip');
+  if (!el) return;
+  let txt, cls = '';
+  switch (syncState) {
+    case 'connecting': txt = '… 连接中';   cls = 's-busy'; break;
+    case 'synced':     txt = '● 已同步';   cls = 's-on';   break;
+    case 'syncing':    txt = '↻ 同步中…';  cls = 's-busy'; break;
+    case 'error':      txt = '⚠ 同步出错'; cls = 's-err';  break;
+    default:           txt = gistToken ? '● 已连接' : '⊘ 本地模式 · 开启同步'; cls = gistToken ? 's-on' : '';
+  }
+  el.textContent = txt;
+  el.className = 'sync-chip ' + cls;
+}
+
+function openSync() {
+  const connected = !!gistToken;
+  document.getElementById('sync-modal').innerHTML = `
+    <div class="modal-head">
+      <span class="mini-label">Cross-device sync</span>
+      <button class="modal-close" onclick="closeSync()" aria-label="Close">✕</button>
+    </div>
+    <h2 class="modal-name" style="font-size:19px">用私密 GitHub Gist 同步</h2>
+    <p class="sync-help">数据会存到你 GitHub 账号下的一个<b>私密 Gist</b>，多设备自动同步。token 只保存在<b>这台设备的浏览器</b>里，不会进入公开仓库。建议用<b>只勾 gist 权限</b>的 token，风险最小。</p>
+    <a class="sync-link" href="https://github.com/settings/tokens/new?scopes=gist&description=project-monitor-sync" target="_blank" rel="noopener">→ 点这里生成一个只含 gist 权限的 token ↗</a>
+    <div class="field" style="margin-top:14px">
+      <label class="mini-label">GitHub token</label>
+      <input class="text-input" id="sync-token" type="password" autocomplete="off" spellcheck="false"
+             placeholder="ghp_… 或 github_pat_…" value="${esc(gistToken)}">
+    </div>
+    <div id="sync-status-line" class="sync-status ${statusClass()}">${syncStatusText()}</div>
+    <div class="modal-foot">
+      ${connected ? '<button class="act-btn" onclick="disconnectSync()">断开同步</button>' : '<span></span>'}
+      <button class="act-btn chat-btn" onclick="doConnect()">${connected ? '重新连接 / 拉取' : '连接并同步'}</button>
+    </div>
+  `;
+  document.getElementById('sync-overlay').classList.add('open');
+}
+
+function closeSync() {
+  document.getElementById('sync-overlay').classList.remove('open');
+}
+
+function doConnect() {
+  const inp = document.getElementById('sync-token');
+  if (inp) connectSync(inp.value);
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeSync(); } });
 
 document.getElementById('today-label').textContent =
   new Date().toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
 
+window.addEventListener('focus', () => { if (gistToken) pullLatest(); });
+
 render();
+updateSyncChip();
+if (gistToken) connectSync(gistToken);
 </script>
 </body>
 </html>
