@@ -1,2 +1,15 @@
 # Local source kept out of the public repo (index.html is the published copy)
 project_monitor.html
+
+# macOS noise
+.DS_Store
+
+# Local reference repos & research — must never be published to the public Pages repo
+ai-guide-main/
+yupi-hot-monitor-master/
+openhanako-main/
+personal-knowledge-base-from-ai-main/
+.research/
+
+# The Electron working-engine app — its own (private) git repo, never published via Pages
+engine/
